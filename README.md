@@ -4,9 +4,9 @@
     <img src="./logo.png" width="196px" />
 </p>
 
-Track code or text snippets in markdown files across your git repos to keep them in sync.
+Keep code and text snippets in sync across your git repos.
 
-Useful for tracking any variable info such as **team members' names**, **phone numbers**, **e-mail addresses** or **server IPs** across repos.
+Useful to track any evolving info stored in your documentations, such as **team members' names**, **phone numbers**, **e-mail addresses** or **server IPs** across your repos.
 
 ## Features
 
@@ -53,21 +53,25 @@ freshdoc:
             --header "SSL_VERIFY: true" \
             --header "REPOS_TO_CHECK: group1,group2" \
             --header "BRANCHES_TO_CHECK: main,master,develop" \
+            --header "FILE_EXTENSIONS: md,txt" \
+            --header "EXCLUDED_DIRECTORIES: node_modules/**" \
             http://localhost:8080/check
 ```
 
 - A `200` HTTP code will be returned if no problem was encountered, `400` else.
 - Body with eventually include a detailed list of problems to solve.
 
-| Key                                                                                                            | Value description                                                                               |
-| -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| USERNAME                                                                                                       | Username with which the repo can be cloned (over HTTPS)                                         |
-| PASSWORD                                                                                                       | Password or token with which the repo can be cloned (over HTTPS)                                |
-| REPOS_TO_CHECK                                                                                                 | List of repo URLs to track references. Delimited by commas.                                     |
-| BRANCHES_TO_CHECK                                                                                              | List of branches to track references. Delimited by commas. Unexistant branches will be skipped. |
-| [SSL_VERIFY](https://stackoverflow.com/questions/11621768/how-can-i-make-git-accept-a-self-signed-certificate) | "true" or "false". Should the git clone command ignore SSL verification for remote server.      |
-| CHECK_DEAD_LINKS                                                                                               | "true" or "false". Enable or disable dead link checking.                                        |
-| CHECK_REPOS                                                                                                    | "true" or "false". Enable or disable reference checking .                                       |
+| Key                                                                                                            | Value description                                                                                                               |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| USERNAME                                                                                                       | Required. Username with which the repo can be cloned (over HTTPS)                                                               |
+| PASSWORD                                                                                                       | Required. Password or token with which the repo can be cloned (over HTTPS)                                                      |
+| REPOS_TO_CHECK                                                                                                 | Required. List of repo URLs to track references. Delimited by commas.                                                           |
+| BRANCHES_TO_CHECK                                                                                              | Default: "main,master,develop". List of branches to track references. Delimited by commas. Unexistant branches will be skipped. |
+| [SSL_VERIFY](https://stackoverflow.com/questions/11621768/how-can-i-make-git-accept-a-self-signed-certificate) | "true" (default) or "false". Enable or disable git clone command's SSL verification for provided repos.                         |
+| CHECK_DEAD_LINKS                                                                                               | "true" (default) or "false". Enable or disable dead link checking.                                                              |
+| CHECK_REPOS                                                                                                    | "true" (default) or "false". Enable or disable reference checking.                                                              |
+| FILE_EXTENSIONS                                                                                                | Default: "md,txt". Commas-delimited list of file extensions in which Freshdoc will check for references.                        |
+| EXCLUDED_DIRECTORIES                                                                                           | No default value. Commas-delimited list of glob patterns indicating which directory to ignore for all provided repos.           |
 
 ## Start server
 
