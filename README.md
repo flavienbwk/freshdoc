@@ -1,14 +1,16 @@
 # Freshdoc
 
-<center>
+<p align="center">
     <img src="./logo.png" width="196px" />
-</center>
+</p>
 
 Track code or text snippets in markdown files across your git repos to keep them in sync.
 
+Useful for tracking any variable info such as **team members' names**, **phone numbers**, **e-mail addresses** or **server IPs** across repos.
+
 ## Features
 
-- Check non-identical markdown snippets accross repos
+- Check for non-identical markdown snippets accross repos
 - Detect dead links
 - Integrates with any git repo
 - Callable through [curl](https://curl.se/)
