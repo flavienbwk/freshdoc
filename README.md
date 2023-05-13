@@ -46,15 +46,15 @@ stages:
 freshdoc:
     stage: test
     script: 
-        - curl \
-            --request GET \
-            --header "USERNAME: ${GITLAB_USER_LOGIN}" \
-            --header "PASSWORD: ${CI_JOB_TOKEN}" \
-            --header "SSL_VERIFY: true" \
-            --header "REPOS_TO_CHECK: group1,group2" \
-            --header "BRANCHES_TO_CHECK: main,master,develop" \
-            --header "FILE_EXTENSIONS: md,txt" \
-            --header "EXCLUDED_DIRECTORIES: node_modules/**" \
+        - curl --request POST \
+            --header "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "username=${GITLAB_USER_LOGIN}" \
+            --data-urlencode "password=${CI_JOB_TOKEN}" \
+            --data-urlencode "ssl_verify=true" \
+            --data-urlencode "repos_to_check=group1,group2" \
+            --data-urlencode "branches_to_check=main,master,develop" \
+            --data-urlencode "file_extensions=md,txt" \
+            --data-urlencode "excluded_directories=node_modules/**" \
             http://localhost:8080/check
 ```
 

@@ -1,0 +1,9 @@
+version: '3.9'
+
+services:
+  freshdoc:
+    build: ./app
+    volumes:
+      - ./app/app:/usr/app
+    ports:
+      - 8080:8080
