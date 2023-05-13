@@ -65,7 +65,9 @@ freshdoc:
 | PASSWORD                                                                                                       | Password or token with which the repo can be cloned (over HTTPS)                                |
 | REPOS_TO_CHECK                                                                                                 | List of repo URLs to track references. Delimited by commas.                                     |
 | BRANCHES_TO_CHECK                                                                                              | List of branches to track references. Delimited by commas. Unexistant branches will be skipped. |
-| [SSL_VERIFY](https://stackoverflow.com/questions/11621768/how-can-i-make-git-accept-a-self-signed-certificate) | `true | false`. Should the git clone command ignore SSL verification for remote server. |
+| [SSL_VERIFY](https://stackoverflow.com/questions/11621768/how-can-i-make-git-accept-a-self-signed-certificate) | "true" or "false". Should the git clone command ignore SSL verification for remote server.      |
+| CHECK_DEAD_LINKS                                                                                               | "true" or "false". Enable or disable dead link checking.                                        |
+| CHECK_REPOS                                                                                                    | "true" or "false". Enable or disable reference checking .                                       |
 
 ## Start server
 
