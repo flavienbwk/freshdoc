@@ -1,12 +1,13 @@
 import fnmatch
 import glob
+import hashlib
 import os
 import re
 import tempfile
 import traceback
 from multiprocessing import Process, Queue
 from typing import List
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 from fastapi import FastAPI, Form, HTTPException, status
 from git import Repo as GitRepo
@@ -15,7 +16,7 @@ from git import Repo as GitRepo
 class RepoItem:
 
     error: bool = False  # Did an error occured processing this repo ?
-    references_by_name: list = {}
+    references: List[object] = []
     work_dir: str = None  # Where repo is cloned locally
     comments: list = []
 
@@ -23,19 +24,21 @@ class RepoItem:
         self,
         url: str,
         branch: str,
-        username: str,
-        password: str,
         file_extensions: List[str],
         excluded_directories: List[str],
         ssl_verify: bool = True,
     ):
         self.url = url
         self.branch = branch
-        self.username = username
-        self.password = password
         self.file_extensions = file_extensions
         self.excluded_directories = excluded_directories
         self.ssl_verify = ssl_verify
+
+    def set_url(self, url: str):
+        self.url = url
+
+    def set_references(self, refs: list):
+        self.references = refs
 
     def set_error(self, err: bool):
         self.error = err
@@ -48,10 +51,29 @@ class RepoItem:
 
 
 def is_valid_url(url: str) -> bool:
-    parsed_url = urlparse(url)
-    if parsed_url.scheme and parsed_url.netloc:
-        return True
-    return False
+    pattern = r"^https?://(?:[a-zA-Z0-9]+:[a-zA-Z0-9]+@)?(?:[a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+(?::\d+)?(?:\/(?:[^\s/]+\/)*[^\s/]+\.git)?"
+    return re.match(pattern, url) is not None
+
+
+def clear_git_url_password(url):
+    parsed = urlparse(url)
+    new_netloc = parsed.hostname
+    if parsed.port:
+        new_netloc += f":{parsed.port}"
+    if parsed.username:
+        new_netloc = f"{parsed.username}@{new_netloc}"
+    new_url = urlunparse(
+        (
+            parsed.scheme,
+            new_netloc,
+            parsed.path,
+            parsed.params,
+            parsed.query,
+            parsed.fragment,
+        )
+    )
+
+    return new_url
 
 
 def is_valid_branch_name(name: str) -> bool:
@@ -60,8 +82,6 @@ def is_valid_branch_name(name: str) -> bool:
 
 
 def format_options(
-    username: str = Form(...),
-    password: str = Form(...),
     repos_to_check: str = Form(...),
     ssl_verify: bool = Form(default=True),
     branches_to_check: str = Form(default=""),
@@ -69,8 +89,6 @@ def format_options(
     excluded_directories: str = Form(default=""),
 ):
     options = {
-        "username": username,
-        "password": password,
         "ssl_verify": ssl_verify,
         "repos_to_check": [],
         "branches_to_check": [],
@@ -131,6 +149,13 @@ def format_options(
     return options
 
 
+def md5_hash(string):
+    hash_object = hashlib.md5()
+    hash_object.update(string.encode("utf-8"))
+    hash_string = hash_object.hexdigest()
+    return hash_string
+
+
 def list_files_with_extension(path: str, extension: str, excluded_dirs: list = []):
     search_pattern = os.path.join(path, f"*.{extension}")
     file_list = glob.glob(search_pattern)
@@ -141,26 +166,18 @@ def list_files_with_extension(path: str, extension: str, excluded_dirs: list = [
     return file_list
 
 
-def format_git_clone_url(repository_url: str, username: str, password: str):
-    formatted_url = repository_url.replace(
-        "https://", f"https://{username}:{password}@"
-    )
-    formatted_url = formatted_url.replace("http://", f"http://{username}:{password}@")
-    return formatted_url
-
-
 def git_clone(
     url: str,
     to_path: str,
-    username: str,
-    password: str,
     ssl_verify: bool = True,
 ) -> GitRepo:
     os.environ["GIT_SSL_NO_VERIFY"] = "0" if ssl_verify else "1"
-    formatted_url = format_git_clone_url(url, username, password)
-    gitrepo = GitRepo.clone_from(url=formatted_url, to_path=to_path)
+    gitrepo = GitRepo.clone_from(url=url, to_path=to_path)
     os.environ["GIT_SSL_NO_VERIFY"] = "0"
     return gitrepo
+
+
+FD_REFS_PATTERN = r"<(fd:([a-zA-Z0-9_-]+):([0-9]+))>(?:[.\s]*-->)?(?:\s+?)?(.*)(?:\s+?)?(?:<!--[.\s]*)</\1>"
 
 
 def process_repo(repo: RepoItem) -> RepoItem:
@@ -170,8 +187,6 @@ def process_repo(repo: RepoItem) -> RepoItem:
         gitrepo = git_clone(
             url=repo.url,
             to_path=repo.work_dir,
-            username=repo.username,
-            password=repo.password,
             ssl_verify=repo.ssl_verify,
         )
         try:
@@ -187,12 +202,25 @@ def process_repo(repo: RepoItem) -> RepoItem:
             file_list = file_list + ext_file_list
             if not len(ext_file_list):
                 repo.add_comment(
-                    f"WARN: No file with extension {extension} found in repo."
+                    f"VERB: No file with extension {extension} found in repo."
                 )
         repo.add_comment(f"VERB: Processing following files : {str(file_list)}")
-        for file in file_list:
-            # TODO: Process each file
-            pass
+        references = []
+        cleared_url = clear_git_url_password(repo.url)
+        for file_path in file_list:
+            with open(file_path, "r") as file:
+                file_content = file.read()
+                matches = re.findall(FD_REFS_PATTERN, file_content, re.DOTALL)
+                for match in matches:
+                    reference = {
+                        "name": match[1],
+                        "version": int(match[2]),
+                        "value": match[3],
+                        "url_branch": f"{cleared_url}++{repo.branch}",
+                        "hash": md5_hash(f"{match[3]}+{match[2]}"),
+                    }
+                    references.append(reference)
+        repo.set_references(references)
     return repo
 
 
@@ -215,8 +243,6 @@ app = FastAPI()
 
 @app.post("/check")
 async def check(
-    username: str = Form(...),
-    password: str = Form(...),
     repos_to_check: str = Form(...),
     ssl_verify: bool = Form(default=True),
     branches_to_check: str = Form(default=""),
@@ -226,7 +252,7 @@ async def check(
     kwargs = locals().copy()
     options = format_options(**kwargs)
 
-    # Create input and output queues
+    # I/O queues for parallel process of repos
     input_queue = Queue()
     output_queue = Queue()
 
@@ -243,8 +269,6 @@ async def check(
             item = RepoItem(
                 url=repo,
                 branch=branch,
-                username=options["username"],
-                password=options["password"],
                 file_extensions=options["file_extensions"],
                 excluded_directories=options["excluded_directories"],
                 ssl_verify=options["ssl_verify"],
@@ -263,18 +287,44 @@ async def check(
         processed_repo_items.append(processed_repo)
 
     # Process references
-    # TODO: Write code
-    references_by_repo = {}
+    references_last_version = {}
     references_by_name = {}
+    for item in processed_repo_items:
+        for reference in item.references:
+            if not reference:
+                continue
+            ref_key = f"{reference['name']}+{reference['version']}"
+            if ref_key not in references_by_name:
+                references_by_name[ref_key] = {
+                    "version": reference["version"],
+                    "name": reference["name"],
+                    "value": reference["value"],
+                    "urls": [],
+                    "hash": reference["hash"],
+                }
+            if reference["name"] not in references_last_version:
+                references_last_version[reference["name"]] = reference["version"]
+            if reference["version"] > references_last_version[reference["name"]]:
+                references_last_version[reference["name"]] = reference["version"]
+            references_by_name[ref_key]["urls"].append(reference["url_branch"])
+
+    # Watching for references with same name but not the latest version (WARN)
+
+    # Watching for references with same name and version but different content (ERR)
+
+    return references_last_version
 
     comments: list = []
     has_failed: bool = False
     for item in processed_repo_items:
+        cleared_url = clear_git_url_password(item.url)
         if item.error:
             has_failed = True
         for comment in item.comments:
-            ncomment = f"[{item.url} / {item.branch}] {comment}"
+            ncomment = f"[{cleared_url} / {item.branch}] {comment}"
             comments.append(ncomment)
+
+    return [repo.references for repo in processed_repo_items if repo.references]
 
     if has_failed:
         raise HTTPException(

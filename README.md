@@ -51,7 +51,7 @@ freshdoc:
             --data-urlencode "username=${GITLAB_USER_LOGIN}" \
             --data-urlencode "password=${CI_JOB_TOKEN}" \
             --data-urlencode "ssl_verify=true" \
-            --data-urlencode "repos_to_check=group1,group2" \
+            --data-urlencode "repos_to_check=https://${GITLAB_USER_LOGIN}:${CI_JOB_TOKEN}@mygitlab.com/group/project,https://${GITLAB_USER_LOGIN}:${CI_JOB_TOKEN}@mygitlab.com/group2/project2" \
             --data-urlencode "branches_to_check=main,master,develop" \
             --data-urlencode "file_extensions=md,txt" \
             --data-urlencode "excluded_directories=node_modules/**" \
@@ -61,15 +61,13 @@ freshdoc:
 - A `200` HTTP code will be returned if no problem was encountered, `400` else.
 - Body with eventually include a detailed list of problems to solve.
 
-| Key                                                                                                            | Value description                                                                                                               |
-| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| USERNAME                                                                                                       | Required. Username with which the repo can be cloned (over HTTPS)                                                               |
-| PASSWORD                                                                                                       | Required. Password or token with which the repo can be cloned (over HTTPS)                                                      |
-| REPOS_TO_CHECK                                                                                                 | Required. List of repo URLs to track references. Delimited by commas.                                                           |
-| BRANCHES_TO_CHECK                                                                                              | Default: "main,master,develop". List of branches to track references. Delimited by commas. Unexistant branches will be skipped. |
-| [SSL_VERIFY](https://stackoverflow.com/questions/11621768/how-can-i-make-git-accept-a-self-signed-certificate) | "true" (default) or "false". Enable or disable git clone command's SSL verification for provided repos.                         |
-| FILE_EXTENSIONS                                                                                                | Default: "md,txt". Commas-delimited list of file extensions in which Freshdoc will check for references.                        |
-| EXCLUDED_DIRECTORIES                                                                                           | No default value. Commas-delimited list of glob patterns indicating which directory to ignore for all provided repos.           |
+| Key                                                                                                            | Value description                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| REPOS_TO_CHECK                                                                                                 | Required. List of repo URLs to track references. Delimited by commas. Should include credentials as "https://{username}:{password}@mygitserver.com/group/project" |
+| BRANCHES_TO_CHECK                                                                                              | Default: "main,master,develop". List of branches to track references. Delimited by commas. Unexistant branches will be skipped.                                   |
+| [SSL_VERIFY](https://stackoverflow.com/questions/11621768/how-can-i-make-git-accept-a-self-signed-certificate) | "true" (default) or "false". Enable or disable git clone command's SSL verification for provided repos.                                                           |
+| FILE_EXTENSIONS                                                                                                | Default: "md,txt". Commas-delimited list of file extensions in which Freshdoc will check for references.                                                          |
+| EXCLUDED_DIRECTORIES                                                                                           | No default value. Commas-delimited list of glob patterns indicating which directory to ignore for all provided repos.                                             |
 
 ## Start server
 
