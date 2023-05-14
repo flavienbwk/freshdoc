@@ -93,7 +93,7 @@ freshdoc:
 Using Docker and docker-compose :
 
 ```bash
-docker-compose up --build -d
+docker-compose -f prod.docker-compose.yml up --build -d
 ```
 
 API will be available on port `8080` by default.
