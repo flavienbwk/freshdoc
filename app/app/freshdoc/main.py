@@ -216,7 +216,9 @@ def process_repo(repo: RepoItem) -> RepoItem:
                         "name": match[1],
                         "version": int(match[2]),
                         "value": match[3],
-                        "url_branch": f"{cleared_url}++{repo.branch}",
+                        "url": cleared_url,
+                        "branch": repo.branch,
+                        "file": file_path.lstrip(repo.work_dir),
                         "hash": md5_hash(f"{match[3]}+{match[2]}"),
                     }
                     references.append(reference)
@@ -286,10 +288,22 @@ async def check(
         processed_repo = output_queue.get()
         processed_repo_items.append(processed_repo)
 
+    comments: list = []
+    has_failed: bool = False
+    for item in processed_repo_items:
+        cleared_url = clear_git_url_password(item.url)
+        if item.error:
+            has_failed = True
+        for comment in item.comments:
+            ncomment = f"[{cleared_url} / {item.branch}] {comment}"
+            comments.append(ncomment)
+
     # Process references
     references_last_version = {}
     references_by_name = {}
     for item in processed_repo_items:
+        if item.error:
+            continue
         for reference in item.references:
             if not reference:
                 continue
@@ -302,27 +316,30 @@ async def check(
                     "urls": [],
                     "hash": reference["hash"],
                 }
-            if reference["name"] not in references_last_version:
+            if (
+                reference["name"] not in references_last_version
+                or reference["version"] > references_last_version[reference["name"]]
+            ):
                 references_last_version[reference["name"]] = reference["version"]
-            if reference["version"] > references_last_version[reference["name"]]:
-                references_last_version[reference["name"]] = reference["version"]
-            references_by_name[ref_key]["urls"].append(reference["url_branch"])
+            url_with_file = (
+                f"{reference['url']}/-/blob/{reference['branch']}/{reference['file']}"
+            )
+            references_by_name[ref_key]["urls"].append(url_with_file)
 
     # Watching for references with same name but not the latest version (WARN)
+    for reference_name, reference in references_by_name.items():
+        if reference["version"] < references_last_version[reference["name"]]:
+            ref_last_version_key = (
+                f"{reference['name']}+{references_last_version[reference['name']]}"
+            )
+            ref_last_version = references_by_name[ref_last_version_key]
+            comments.append(
+                f"WARN: Reference \"{reference['name']}\" is outdated for files : {reference['urls']}. Current version : \"{reference['version']}\". Last version : \"{ref_last_version['version']}\" available on files : {ref_last_version['urls']}. Consider updating !"
+            )
 
     # Watching for references with same name and version but different content (ERR)
 
-    return references_last_version
-
-    comments: list = []
-    has_failed: bool = False
-    for item in processed_repo_items:
-        cleared_url = clear_git_url_password(item.url)
-        if item.error:
-            has_failed = True
-        for comment in item.comments:
-            ncomment = f"[{cleared_url} / {item.branch}] {comment}"
-            comments.append(ncomment)
+    return comments
 
     return [repo.references for repo in processed_repo_items if repo.references]
 
