@@ -47,14 +47,12 @@ freshdoc:
     stage: test
     script: 
         - curl --request POST \
-            --header "Content-Type: application/x-www-form-urlencoded" \
-            --data-urlencode "username=${GITLAB_USER_LOGIN}" \
-            --data-urlencode "password=${CI_JOB_TOKEN}" \
-            --data-urlencode "ssl_verify=true" \
-            --data-urlencode "repos_to_check=https://${GITLAB_USER_LOGIN}:${CI_JOB_TOKEN}@mygitlab.com/group/project,https://${GITLAB_USER_LOGIN}:${CI_JOB_TOKEN}@mygitlab.com/group2/project2" \
-            --data-urlencode "branches_to_check=main,master,develop" \
-            --data-urlencode "file_extensions=md,txt" \
-            --data-urlencode "excluded_directories=node_modules/**" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "ssl_verify=true" \
+            -d "repos_to_check=https://${GITLAB_USER_LOGIN}:${CI_JOB_TOKEN}@mygitlab.com/group/project,https://${GITLAB_USER_LOGIN}:${CI_JOB_TOKEN}@mygitlab.com/group2/project2" \
+            -d "branches_to_check=main,master,develop,${CI_COMMIT_BRANCH}" \
+            -d "file_extensions=md,txt" \
+            -d "excluded_directories=node_modules/**" \
             http://localhost:8080/check
 ```
 

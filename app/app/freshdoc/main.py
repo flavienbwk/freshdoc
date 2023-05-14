@@ -40,7 +40,7 @@ class RepoItem:
     def set_references(self, refs: list):
         self.references = refs
 
-    def set_error(self, err: bool):
+    def set_error(self, ERROR: bool):
         self.error = err
 
     def add_comment(self, msg: str):
@@ -235,7 +235,7 @@ def worker(input_queue, output_queue):
             item = process_repo(item)
         except Exception as e:
             item.set_error(True)
-            item.add_comment(f"ERR: An error occured processing this repo : {str(e)}")
+            item.add_comment(f"ERROR: An error occured processing this repo : {str(e)}")
             traceback.print_exc()
         output_queue.put(item)
 
@@ -300,6 +300,7 @@ async def check(
 
     # Process references
     references_last_version = {}
+    references_by_file = {}
     references_by_name = {}
     for item in processed_repo_items:
         if item.error:
@@ -324,28 +325,41 @@ async def check(
             url_with_file = (
                 f"{reference['url']}/-/blob/{reference['branch']}/{reference['file']}"
             )
-            references_by_name[ref_key]["urls"].append(url_with_file)
+            if reference["hash"] == references_by_name[ref_key]["hash"]:
+                references_by_name[ref_key]["urls"].append(url_with_file)
+            if not url_with_file in references_by_file:
+                references_by_file[url_with_file] = {
+                    "version": reference["version"],
+                    "name": reference["name"],
+                    "file": url_with_file,
+                    "value": reference["value"],
+                    "hash": reference["hash"],
+                }
 
     # Watching for references with same name but not the latest version (WARN)
-    for reference_name, reference in references_by_name.items():
+    for _, reference in references_by_name.items():
         if reference["version"] < references_last_version[reference["name"]]:
             ref_last_version_key = (
                 f"{reference['name']}+{references_last_version[reference['name']]}"
             )
             ref_last_version = references_by_name[ref_last_version_key]
             comments.append(
-                f"WARN: Reference \"{reference['name']}\" is outdated for files : {reference['urls']}. Current version : \"{reference['version']}\". Last version : \"{ref_last_version['version']}\" available on files : {ref_last_version['urls']}. Consider updating !"
+                f"WARN: Reference \"{reference['name']}\" is outdated for files : {reference['urls']}. Current version is {reference['version']}. Last version is {ref_last_version['version']}, available on files : {ref_last_version['urls']}. Consider updating !"
             )
 
     # Watching for references with same name and version but different content (ERR)
-
-    return comments
-
-    return [repo.references for repo in processed_repo_items if repo.references]
+    for _, reference in references_by_file.items():
+        ref_key = f"{reference['name']}+{reference['version']}"
+        reference_source = references_by_name[ref_key]
+        if reference["hash"] != reference_source["hash"]:
+            has_failed = True
+            comments.append(
+                f"ERROR: Reference mismatch. Reference \"{reference['name']}\" version {reference['version']} does not have the same content in {reference['file']} and in {reference_source['urls']}. Adjust references so they have the same content !"
+            )
 
     if has_failed:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=comments,
         )
-    return comments
+    return {"details": comments}
