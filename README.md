@@ -24,7 +24,7 @@ Useful to track any evolving info stored in your documentations, such as **team 
 
 ## Features
 
-- Check for non-identical markdown snippets accross repos
+- Check for non-identical text snippets accross repos
 - Detect dead links
 - Integrates with any git repo
 - Callable through [curl](https://curl.se/)
