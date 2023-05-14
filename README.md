@@ -2,9 +2,6 @@
 
 <p align="center">
     <img src="./logo.png" width="196px" />
-</p>
-
-<center>
     <a href="https://github.com/flavienbwk/freshdoc/actions/workflows/build-dev.yaml">
         <img src="https://github.com/flavienbwk/freshdoc/actions/workflows/build-dev.yaml/badge.svg" alt="Dev build">
     </a>
@@ -17,7 +14,7 @@
     <a href="./LICENSE">
         <img src="https://black.readthedocs.io/en/stable/_static/license.svg" alt="License: MIT">
     </a>
-</center>
+</p>
 
 Keep code and text snippets in sync across your git repos.
 
