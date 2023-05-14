@@ -9,7 +9,12 @@ from multiprocessing import Process, Queue
 from typing import List
 
 from fastapi import FastAPI, Form, HTTPException, status
-from freshdoc.helpers import check_link_alive, clear_git_url_password, is_valid_branch_name, is_valid_url
+from freshdoc.helpers import (
+    check_link_alive,
+    clear_git_url_password,
+    is_valid_branch_name,
+    is_valid_url,
+)
 from git import Repo as GitRepo
 
 
@@ -157,7 +162,9 @@ def git_clone(
 
 
 FD_REFS_PATTERN = r"<(fd:([a-zA-Z0-9_-]+):([0-9]+))>(?:[.\s]*-->)?(?:\s+?)?(.*)(?:\s+?)?(?:<!--[.\s]*)</\1>"
-LINKS_PATTERN = r"\b((?:https?):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)"
+LINKS_PATTERN = (
+    r"\b((?:https?):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)"
+)
 
 
 def process_repo(repo: RepoItem) -> RepoItem:
@@ -184,7 +191,9 @@ def process_repo(repo: RepoItem) -> RepoItem:
                 repo.add_comment(
                     f"VERB: No file with extension {extension} found in repo."
                 )
-        repo.add_comment(f"VERB: Processing following files : {str(file_list)}")
+        repo.add_comment(
+            f"VERB: Processing following files : {str(file_list).replace(repo.work_dir, '')}"
+        )
         references = []
         cleared_url = clear_git_url_password(repo.url)
         for file_path in file_list:
@@ -211,11 +220,9 @@ def process_repo(repo: RepoItem) -> RepoItem:
                 for match in matches_links:
                     response_code = check_link_alive(match[0])
                     if response_code < 200 or response_code > 403:
-                        dead_links.append({
-                            "link": match[0],
-                            "file": file_url,
-                            "code": response_code
-                        })
+                        dead_links.append(
+                            {"link": match[0], "file": file_url, "code": response_code}
+                        )
                 repo.set_dead_links(dead_links)
         repo.set_references(references)
     return repo

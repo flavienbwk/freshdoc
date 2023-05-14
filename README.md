@@ -17,6 +17,8 @@ Useful to track any evolving info stored in your documentations, such as **team 
 
 ## Usage
 
+### Declare a reference
+
 Wrap text or code to be tracked in a markdown comment including a Freshdoc reference tag.
 
 ```markdown
@@ -35,7 +37,7 @@ Phone number : <!-- <fd:phone_cs:1> -->+33900000001<!-- </fd:phone_cs:1> -->
 
 ```
 
-### For GitLab CI
+### Validate in GitLab CI
 
 Use it with _curl_ :
 
