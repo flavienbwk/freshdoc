@@ -6,7 +6,7 @@
 
 [![Dev build](https://github.com/flavienbwk/freshdoc/actions/workflows/build-dev.yaml/badge.svg)](https://github.com/flavienbwk/freshdoc/actions/workflows/build-dev.yaml)
 [![Prod build](https://github.com/flavienbwk/freshdoc/actions/workflows/build-prod.yaml/badge.svg)](https://github.com/flavienbwk/freshdoc/actions/workflows/build-prod.yaml)
-[![Using black Python formatter](https://img.shields.io/pypi/v/black)](https://pepy.tech/badge/black)
+[![Using black Python formatter](https://img.shields.io/badge/code%20style-black-000000.svg)](https://pepy.tech/badge/black)
 [![License: MIT](https://black.readthedocs.io/en/stable/_static/license.svg)](./LICENSE)
 
 Keep code and text snippets in sync across your git repos.
