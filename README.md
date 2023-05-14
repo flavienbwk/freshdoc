@@ -2,6 +2,8 @@
 
 <p align="center">
     <img src="./logo.png" width="196px" />
+</p>
+<p align="center">
     <a href="https://github.com/flavienbwk/freshdoc/actions/workflows/build-dev.yaml">
         <img src="https://github.com/flavienbwk/freshdoc/actions/workflows/build-dev.yaml/badge.svg" alt="Dev build">
     </a>
