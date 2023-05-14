@@ -104,4 +104,4 @@ text
 
 Let's say you have two repos A and B to keep in sync. To upgrade a reference, increase its version number in repo A, commit and push.
 
-Now-on, any push in repo B will trigger a warning until the **value** of the reference and its **version** are matching.
+Now-on, any push in repo B will trigger a warning until the **value** and **version** of the reference are matching.
