@@ -4,10 +4,20 @@
     <img src="./logo.png" width="196px" />
 </p>
 
-[![Dev build](https://github.com/flavienbwk/freshdoc/actions/workflows/build-dev.yaml/badge.svg)](https://github.com/flavienbwk/freshdoc/actions/workflows/build-dev.yaml)
-[![Prod build](https://github.com/flavienbwk/freshdoc/actions/workflows/build-prod.yaml/badge.svg)](https://github.com/flavienbwk/freshdoc/actions/workflows/build-prod.yaml)
-[![Using black Python formatter](https://img.shields.io/badge/code%20style-black-000000.svg)](https://pepy.tech/badge/black)
-[![License: MIT](https://black.readthedocs.io/en/stable/_static/license.svg)](./LICENSE)
+<center>
+    <a href="https://github.com/flavienbwk/freshdoc/actions/workflows/build-dev.yaml">
+        <img src="https://github.com/flavienbwk/freshdoc/actions/workflows/build-dev.yaml/badge.svg" alt="Dev build">
+    </a>
+    <a href="https://github.com/flavienbwk/freshdoc/actions/workflows/build-prod.yaml">
+        <img src="https://github.com/flavienbwk/freshdoc/actions/workflows/build-prod.yaml/badge.svg" alt="Prod build">
+    </a>
+    <a href="https://pepy.tech/badge/black">
+        <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Using black Python formatter">
+    </a>
+    <a href="./LICENSE">
+        <img src="https://black.readthedocs.io/en/stable/_static/license.svg" alt="License: MIT">
+    </a>
+</center>
 
 Keep code and text snippets in sync across your git repos.
 
