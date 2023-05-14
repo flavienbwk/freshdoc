@@ -87,9 +87,11 @@ def format_options(
     branches_to_check: str = Form(default=""),
     file_extensions: str = Form(default=""),
     excluded_directories: str = Form(default=""),
+    verbose: bool = Form(default=False),
 ):
     options = {
         "ssl_verify": ssl_verify,
+        "verbose": verbose,
         "repos_to_check": [],
         "branches_to_check": [],
         "file_extensions": [],
@@ -250,6 +252,7 @@ async def check(
     branches_to_check: str = Form(default=""),
     file_extensions: str = Form(default=""),
     excluded_directories: str = Form(default=""),
+    verbose: bool = Form(default=False),
 ):
     kwargs = locals().copy()
     options = format_options(**kwargs)
@@ -295,8 +298,9 @@ async def check(
         if item.error:
             has_failed = True
         for comment in item.comments:
-            ncomment = f"[{cleared_url} / {item.branch}] {comment}"
-            comments.append(ncomment)
+            if options["verbose"]:
+                ncomment = f"[{cleared_url} / {item.branch}] {comment}"
+                comments.append(ncomment)
 
     # Process references
     references_last_version = {}

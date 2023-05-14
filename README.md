@@ -53,6 +53,7 @@ freshdoc:
             -d "ssl_verify=true" \
             -d "file_extensions=md,txt" \
             -d "excluded_directories=node_modules/**" \
+            -d "verbose=md,txt" \
             http://localhost:8080/check
 ```
 
@@ -66,6 +67,7 @@ freshdoc:
 | [SSL_VERIFY](https://stackoverflow.com/questions/11621768/how-can-i-make-git-accept-a-self-signed-certificate) | "true" (default) or "false". Enable or disable git clone command's SSL verification for provided repos.                                                           |
 | FILE_EXTENSIONS                                                                                                | Default: "md,txt". Commas-delimited list of file extensions in which Freshdoc will check for references.                                                          |
 | EXCLUDED_DIRECTORIES                                                                                           | No default value. Commas-delimited list of glob patterns indicating which directory to ignore for all provided repos.                                             |
+| VERBOSE                                                                                                        | "true" or "false" (default). Returns analysis details in response. Useful for debugging.                                                                          |
 
 ## Start server
 
@@ -95,6 +97,6 @@ text
 
 Let's say you have two repos A and B to keep in sync. To upgrade a reference, increase its version number in repo A, commit and push.
 
-Now-on, any push in repo B will trigger an error until the value of the reference and its version are upgraded.
+Now-on, any push in repo B will trigger an error until the **value** of the reference and its **version** are upgraded.
 
 Increase this same number to match the same value from repo A in repo B.
