@@ -68,8 +68,6 @@ freshdoc:
 | REPOS_TO_CHECK                                                                                                 | Required. List of repo URLs to track references. Delimited by commas.                                                           |
 | BRANCHES_TO_CHECK                                                                                              | Default: "main,master,develop". List of branches to track references. Delimited by commas. Unexistant branches will be skipped. |
 | [SSL_VERIFY](https://stackoverflow.com/questions/11621768/how-can-i-make-git-accept-a-self-signed-certificate) | "true" (default) or "false". Enable or disable git clone command's SSL verification for provided repos.                         |
-| CHECK_DEAD_LINKS                                                                                               | "true" (default) or "false". Enable or disable dead link checking.                                                              |
-| CHECK_REPOS                                                                                                    | "true" (default) or "false". Enable or disable reference checking.                                                              |
 | FILE_EXTENSIONS                                                                                                | Default: "md,txt". Commas-delimited list of file extensions in which Freshdoc will check for references.                        |
 | EXCLUDED_DIRECTORIES                                                                                           | No default value. Commas-delimited list of glob patterns indicating which directory to ignore for all provided repos.           |
 

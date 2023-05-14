@@ -2,6 +2,8 @@ FROM python:3.9.16-alpine
 
 WORKDIR /usr/app
 
+RUN apk update && apk add git
+
 COPY ./requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
