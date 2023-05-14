@@ -1,0 +1,10 @@
+version: '3.9'
+
+services:
+  freshdoc:
+    image: ${IMAGE:-ghcr.io/flavienbwk/freshdoc/freshdoc}:${TAG:-latest}
+    build:
+      context: ./app
+      dockerfile: prod.Dockerfile
+    ports:
+      - 8080:8080
