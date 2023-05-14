@@ -1,6 +1,5 @@
 import fnmatch
 import glob
-import hashlib
 import os
 import re
 import tempfile
@@ -14,51 +13,10 @@ from freshdoc.helpers import (
     clear_git_url_password,
     is_valid_branch_name,
     is_valid_url,
+    md5_hash,
 )
+from freshdoc.RepoItem import RepoItem
 from git import Repo as GitRepo
-
-
-class RepoItem:
-
-    error: bool = False  # Did an error occured processing this repo ?
-    references: List[object] = []
-    dead_links: List[object] = []
-    work_dir: str = None  # Where repo is cloned locally
-    comments: list = []
-
-    def __init__(
-        self,
-        url: str,
-        branch: str,
-        file_extensions: List[str],
-        excluded_directories: List[str],
-        check_dead_links: bool = True,
-        ssl_verify: bool = True,
-    ):
-        self.url = url
-        self.branch = branch
-        self.file_extensions = file_extensions
-        self.excluded_directories = excluded_directories
-        self.ssl_verify = ssl_verify
-        self.check_dead_links = check_dead_links
-
-    def set_url(self, url: str):
-        self.url = url
-
-    def set_references(self, refs: list):
-        self.references = refs
-
-    def set_dead_links(self, dead_links: list):
-        self.dead_links = dead_links
-
-    def set_error(self, err: bool):
-        self.error = err
-
-    def add_comment(self, msg: str):
-        self.comments = self.comments + [msg]
-
-    def __repr__(self) -> str:
-        return f"RepoItem: url={self.url}, branch={self.branch}, nb_references={len(self.references_by_name)}, work_dir={self.work_dir}, nb_comments={len(self.comments)}"
 
 
 def format_options(
@@ -131,13 +89,6 @@ def format_options(
             )
         options["file_extensions"] = ["md", "txt"]
     return options
-
-
-def md5_hash(string):
-    hash_object = hashlib.md5()
-    hash_object.update(string.encode("utf-8"))
-    hash_string = hash_object.hexdigest()
-    return hash_string
 
 
 def list_files_with_extension(path: str, extension: str, excluded_dirs: list = []):

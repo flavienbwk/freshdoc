@@ -1,7 +1,17 @@
+import hashlib
 import re
-import requests
 import traceback
 from urllib.parse import urlparse, urlunparse
+
+import requests
+
+
+def md5_hash(string):
+    hash_object = hashlib.md5()
+    hash_object.update(string.encode("utf-8"))
+    hash_string = hash_object.hexdigest()
+    return hash_string
+
 
 def check_link_alive(url):
     try:
@@ -10,6 +20,7 @@ def check_link_alive(url):
     except requests.exceptions.RequestException:
         traceback.print_exc()
     return -1
+
 
 def is_valid_url(url: str) -> bool:
     pattern = r"^https?://(?:[a-zA-Z0-9]+:[a-zA-Z0-9]+@)?(?:[a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+(?::\d+)?(?:\/(?:[^\s/]+\/)*[^\s/]+\.git)?"
