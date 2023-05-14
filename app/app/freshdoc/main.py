@@ -7,9 +7,9 @@ import tempfile
 import traceback
 from multiprocessing import Process, Queue
 from typing import List
-from urllib.parse import urlparse, urlunparse
 
 from fastapi import FastAPI, Form, HTTPException, status
+from freshdoc.helpers import check_link_alive, clear_git_url_password, is_valid_branch_name, is_valid_url
 from git import Repo as GitRepo
 
 
@@ -17,6 +17,7 @@ class RepoItem:
 
     error: bool = False  # Did an error occured processing this repo ?
     references: List[object] = []
+    dead_links: List[object] = []
     work_dir: str = None  # Where repo is cloned locally
     comments: list = []
 
@@ -26,6 +27,7 @@ class RepoItem:
         branch: str,
         file_extensions: List[str],
         excluded_directories: List[str],
+        check_dead_links: bool = True,
         ssl_verify: bool = True,
     ):
         self.url = url
@@ -33,6 +35,7 @@ class RepoItem:
         self.file_extensions = file_extensions
         self.excluded_directories = excluded_directories
         self.ssl_verify = ssl_verify
+        self.check_dead_links = check_dead_links
 
     def set_url(self, url: str):
         self.url = url
@@ -40,7 +43,10 @@ class RepoItem:
     def set_references(self, refs: list):
         self.references = refs
 
-    def set_error(self, ERROR: bool):
+    def set_dead_links(self, dead_links: list):
+        self.dead_links = dead_links
+
+    def set_error(self, err: bool):
         self.error = err
 
     def add_comment(self, msg: str):
@@ -50,48 +56,19 @@ class RepoItem:
         return f"RepoItem: url={self.url}, branch={self.branch}, nb_references={len(self.references_by_name)}, work_dir={self.work_dir}, nb_comments={len(self.comments)}"
 
 
-def is_valid_url(url: str) -> bool:
-    pattern = r"^https?://(?:[a-zA-Z0-9]+:[a-zA-Z0-9]+@)?(?:[a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+(?::\d+)?(?:\/(?:[^\s/]+\/)*[^\s/]+\.git)?"
-    return re.match(pattern, url) is not None
-
-
-def clear_git_url_password(url):
-    parsed = urlparse(url)
-    new_netloc = parsed.hostname
-    if parsed.port:
-        new_netloc += f":{parsed.port}"
-    if parsed.username:
-        new_netloc = f"{parsed.username}@{new_netloc}"
-    new_url = urlunparse(
-        (
-            parsed.scheme,
-            new_netloc,
-            parsed.path,
-            parsed.params,
-            parsed.query,
-            parsed.fragment,
-        )
-    )
-
-    return new_url
-
-
-def is_valid_branch_name(name: str) -> bool:
-    pattern = r"^[a-zA-Z0-9-_./]+$"
-    return re.match(pattern, name)
-
-
 def format_options(
     repos_to_check: str = Form(...),
     ssl_verify: bool = Form(default=True),
     branches_to_check: str = Form(default=""),
     file_extensions: str = Form(default=""),
     excluded_directories: str = Form(default=""),
+    check_dead_links: bool = Form(default=True),
     verbose: bool = Form(default=False),
 ):
     options = {
         "ssl_verify": ssl_verify,
         "verbose": verbose,
+        "check_dead_links": check_dead_links,
         "repos_to_check": [],
         "branches_to_check": [],
         "file_extensions": [],
@@ -122,7 +99,7 @@ def format_options(
             )
     if not valid_branches:
         valid_branches = ["main", "master", "develop"]
-    options["branches_to_check"] = valid_branches
+    options["branches_to_check"] = list(set(valid_branches))
 
     if excluded_directories:
         excluded_directories = excluded_directories.split(",")
@@ -180,6 +157,7 @@ def git_clone(
 
 
 FD_REFS_PATTERN = r"<(fd:([a-zA-Z0-9_-]+):([0-9]+))>(?:[.\s]*-->)?(?:\s+?)?(.*)(?:\s+?)?(?:<!--[.\s]*)</\1>"
+LINKS_PATTERN = r"\b((?:https?):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)"
 
 
 def process_repo(repo: RepoItem) -> RepoItem:
@@ -212,18 +190,33 @@ def process_repo(repo: RepoItem) -> RepoItem:
         for file_path in file_list:
             with open(file_path, "r") as file:
                 file_content = file.read()
-                matches = re.findall(FD_REFS_PATTERN, file_content, re.DOTALL)
-                for match in matches:
+                file_url = file_path.lstrip(repo.work_dir)
+                matches_fd_refs = re.findall(FD_REFS_PATTERN, file_content, re.DOTALL)
+                for match in matches_fd_refs:
                     reference = {
                         "name": match[1],
                         "version": int(match[2]),
                         "value": match[3],
                         "url": cleared_url,
                         "branch": repo.branch,
-                        "file": file_path.lstrip(repo.work_dir),
+                        "file": file_url,
                         "hash": md5_hash(f"{match[3]}+{match[2]}"),
                     }
                     references.append(reference)
+
+                if not repo.check_dead_links:
+                    continue
+                matches_links = re.findall(LINKS_PATTERN, file_content, re.DOTALL)
+                dead_links = []
+                for match in matches_links:
+                    response_code = check_link_alive(match[0])
+                    if response_code < 200 or response_code > 403:
+                        dead_links.append({
+                            "link": match[0],
+                            "file": file_url,
+                            "code": response_code
+                        })
+                repo.set_dead_links(dead_links)
         repo.set_references(references)
     return repo
 
@@ -252,6 +245,7 @@ async def check(
     branches_to_check: str = Form(default=""),
     file_extensions: str = Form(default=""),
     excluded_directories: str = Form(default=""),
+    check_dead_links: bool = Form(default=True),
     verbose: bool = Form(default=False),
 ):
     kwargs = locals().copy()
@@ -261,6 +255,7 @@ async def check(
     input_queue = Queue()
     output_queue = Queue()
 
+    # Build the multiprocess queue
     processes = []
     num_processes = 4
     for _ in range(num_processes):
@@ -276,13 +271,12 @@ async def check(
                 branch=branch,
                 file_extensions=options["file_extensions"],
                 excluded_directories=options["excluded_directories"],
+                check_dead_links=options["check_dead_links"],
                 ssl_verify=options["ssl_verify"],
             )
             input_queue.put(item)
-
     for _ in range(num_processes):
         input_queue.put(None)
-
     for p in processes:
         p.join()
 
@@ -358,7 +352,15 @@ async def check(
         if reference["hash"] != reference_source["hash"]:
             has_failed = True
             comments.append(
-                f"ERROR: Reference mismatch. Reference \"{reference['name']}\" version {reference['version']} does not have the same content in {reference['file']} and in {reference_source['urls']}. Adjust references so they have the same content !"
+                f"ERROR: Reference mismatch. Reference \"{reference['name']}\" version {reference['version']} does not have the same content in file {reference['file']} and in files {reference_source['urls']}. Adjust references so they have the same content !"
+            )
+
+    # Process dead links
+    for item in processed_repo_items:
+        for link in item.dead_links:
+            has_failed = True
+            comments.append(
+                f"ERROR: Dead link detected in file {link['file']} : {link['link']} responded with code {link['code']}"
             )
 
     if has_failed:
