@@ -61,18 +61,28 @@ stages:
 
 freshdoc:
     stage: test
-    script: 
-        - curl --request POST \
-            --max-time 30 \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "repos_to_check=https://${GITLAB_USER_LOGIN}:${CI_JOB_TOKEN}@mygitlab.com/${CI_PROJECT_PATH_SLUG},https://${GITLAB_USER_LOGIN}:${CI_JOB_TOKEN}@mygitlab.com/group2/project2" \
+    script:
+        - apk update && apk add bash curl jq
+        - |
+            #!/bin/bash
+            response=(curl --request POST \
+            --max-time 30 -s -w "\n%{http_code}" \
+            -H "Content-Type=application/x-www-form-urlencoded" \
+            -d "repos_to_check=https://gitlab-ci-token:${CI_JOB_TOKEN}@mygitlab.com/${CI_PROJECT_PATH_SLUG},https://gitlab-ci-token:${CI_JOB_TOKEN}@mygitlab.com/group2/project2" \
             -d "branches_to_check=main,master,develop,${CI_COMMIT_BRANCH}" \
             -d "ssl_verify=true" \
             -d "file_extensions=md,txt" \
             -d "excluded_directories=node_modules/**" \
             -d "check_dead_links=true" \
             -d "verbose=false" \
-            http://localhost:8080/check
+            http://localhost:8080/check)
+            http_code=$(echo "$response" | tail -n 1)
+            payload=$(echo "$response" | head -n -1)
+            echo "$payload" | jq -r
+            if [ "$response_code" != "200" ]; then
+                echo "Freshdoc returned a non-200 HTTP code : check the logs above."
+                exit 1
+            fi
 ```
 
 - A `200` HTTP code will be returned if no problem was encountered, otherwise `400`.
