@@ -112,7 +112,7 @@ def git_clone(
     return gitrepo
 
 
-FD_REFS_PATTERN = r"<(fd:([a-zA-Z0-9_-]+):([0-9]+))>(?:[.\s]*-->)?(?:\s+?)?(.*)(?:\s+?)?(?:<!--[.\s]*)</\1>"
+FD_REFS_PATTERN = r"<(fd:([a-zA-Z0-9_-]+):([0-9]+))>(?:[.\s]*-->)?(?:\s+?)?(.*)(?!</)(?:\s+?)?(?:<!--[.\s]*)</\1>{1}"
 LINKS_PATTERN = (
     r"\b((?:https?):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)"
 )
@@ -281,10 +281,11 @@ async def check(
             url_with_file = (
                 f"{reference['url']}/-/blob/{reference['branch']}/{reference['file']}"
             )
+            url_with_file_and_ref = f"{url_with_file}-{reference['hash']}"
             if reference["hash"] == references_by_name[ref_key]["hash"]:
                 references_by_name[ref_key]["urls"].append(url_with_file)
-            if not url_with_file in references_by_file:
-                references_by_file[url_with_file] = {
+            if not url_with_file_and_ref in references_by_file:
+                references_by_file[url_with_file_and_ref] = {
                     "version": reference["version"],
                     "name": reference["name"],
                     "file": url_with_file,
@@ -324,6 +325,6 @@ async def check(
     if has_failed:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=comments,
+            detail=comments
         )
     return {"details": comments}
